@@ -1,0 +1,53 @@
+apply plugin: 'java-gradle-plugin'
+apply plugin: 'eclipse'
+
+// use the same dir for sources and resources (just src/main instead of src/main/java and src/main/resources)
+sourceSets.each {
+    it.java.srcDirs      = [ 'src/' + it.name ]
+    it.resources.srcDirs = [ 'src/' + it.name ]
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding    = 'UTF-8'
+    options.deprecation = false
+    options.warnings    = false
+    options.compilerArgs << '-Xlint:all'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+eclipse {
+    project.name = 'buildSrc'
+    classpath {
+        downloadSources = true
+        downloadJavadoc = true
+        defaultOutputDir = file('build-eclipse')
+        file.withXml { xml ->
+            xml.asNode()
+               .breadthFirst()
+               .grep{ it.name() == 'classpathentry' && it.attribute('kind') == 'src' }
+               .each{ it.attributes().compute('output', { k, v -> v.replaceFirst('^bin/','build-eclipse/') }) }
+        }
+    }
+}
+tasks.eclipseClasspath.dependsOn(cleanEclipseClasspath) // because the code above somehow duplicates <classpathentry kind="src" ...>
+tasks.eclipseClasspath.doLast { mkdir "$buildDir/pluginUnderTestMetadata" } // workaround for https://github.com/gradle/gradle/issues/9996
+
+gradlePlugin {
+    plugins {
+        plugin1 {
+            id = 'it.bitnic.gradle.root-project'
+            implementationClass = 'it.bitnic.handycandy.gradle.plugins.RootProjectPlugin'
+        }
+        plugin2 {
+            id = 'it.bitnic.gradle.java-library'
+            implementationClass = 'it.bitnic.handycandy.gradle.plugins.JavaLibraryPlugin'
+        }
+        plugin3 {
+            id = 'it.bitnic.gradle.java-application'
+            implementationClass = 'it.bitnic.handycandy.gradle.plugins.JavaApplicationPlugin'
+        }
+    }
+}

@@ -1,0 +1,15 @@
+# os junk
+.DS_Store
+Thumbs.db
+
+# gradle
+.gradle
+build/
+/local.gradle
+
+# eclipse
+.project
+.classpath
+.factorypath
+.settings/
+build-eclipse/
